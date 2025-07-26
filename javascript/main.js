@@ -506,9 +506,9 @@ document.addEventListener("keypress", function (e) {
         gid("curtain").style.top = "0%";
         levsel.reopen(100);
         setTimeout(function () { gid("curtain").style.top = "-100%"; }, 500);
-    }
-    for (var i = allWins.length - 1; i >= 0; i--) {
-        if (allWins[i].element.id != "levsel" && allWins[i].element.id != "playbutton")
-            allWins[i].destroy();
+        for (var i = allWins.length - 1; i >= 0; i--) {
+            if (allWins[i].element.id != "levsel" && allWins[i].element.id != "playbutton")
+                allWins[i].destroy();
+        }
     }
 });
