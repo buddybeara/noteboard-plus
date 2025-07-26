@@ -1,0 +1,6 @@
+{
+  "compilerOptions": {
+    "outDir": "javascript",
+    "lib": ["esnext", "dom"]
+  }
+}

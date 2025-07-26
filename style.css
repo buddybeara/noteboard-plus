@@ -1,0 +1,86 @@
+#background, #curtain {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: black;
+  transition: 0.3s;
+}
+.window {
+  position: absolute;
+  background: #889;
+  color: white;
+  font-family: monospace;
+  transition: 0.5s cubic-bezier(0.4, 0.1, 0.1, 0.85);
+  padding: 10px;
+  user-select: none;
+  overflow: clip;
+}
+.winside {
+  position: absolute;
+  background: #224;
+  margin-top: 5px;
+  width: calc(100% - 50px);
+  height: calc(100% - 70px);
+  transition: 0.5s cubic-bezier(0.4, 0.1, 0.1, 0.85);
+  padding: 15px;
+  font-size: 18px;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+  user-select: none;
+}
+.windowbutton:hover {
+  translate: 30px;
+  rotate: -1deg;
+  background: #7aa;
+  cursor: grab;
+}
+.windowbutton:hover > .winside {
+  background: #144;
+}
+.keywindow-hitzone {
+  position: absolute;
+  left: 0;
+  bottom: 50px;
+  width: calc(100% - 20px);
+  height: 20px;
+  margin: 10px;
+  border: 1px solid white;
+  border-radius: 1px;
+  text-align: center;
+}
+.keywindow-input {
+  position: absolute;
+  left: 0;
+  width: calc(100% - 20px);
+  height: 20px;
+  margin: 10px;
+  background: white;
+  color: white;
+  border-radius: 1px;
+  transition-timing-function: cubic-bezier(0.25, 0.25, 0.7, 1);
+  text-align: center;
+}
+.particle {
+  position: absolute;
+  transition: 0.5s cubic-bezier(0.4, 0.1, 0.1, 0.85);
+  font-size: 20px;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-weight: bold;
+}
+.gridwindow-main {
+  display: grid;
+}
+.gridwindow-item {
+  padding-top: 25%;
+  margin: 5px;
+  border: 1px solid white;
+  border-radius: 1px;
+}
+.gridwindow-hitzone {
+  text-align: center;
+  border: 3px solid #7aa;
+  color: white;
+}
