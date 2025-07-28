@@ -386,13 +386,13 @@ var Song = /** @class */ (function () {
 }());
 var hammerOfJustice = new Song("Hammer of Justice - Toby Fox", 136, gid("hammer-of-justice"), 160, 4, function (S) {
     var b = S.mspb;
-    var w0 = new GridWindow(S, 800, 200, 200, 400, "j", 3, 1);
+    var w0 = new GridWindow(S, 800, 200, 200, 400, "j", 4, 1);
     for (var i = 4; i <= 64; i += 4) {
         if (i % 16 == 0) {
-            w0.addInput(b * (i + 1.5), b * 1.5);
+            w0.addInput(b * (i + 1.5), b * 2.25);
         }
         else {
-            w0.addInput(b * (i + 1.5), b * 1.0);
+            w0.addInput(b * (i + 2.0), b * 1.50);
         }
     }
     var w01 = new GridWindow(S, 995, 210, 200, 400, "k", 3, 1, false);
