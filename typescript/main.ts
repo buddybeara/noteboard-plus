@@ -1,4 +1,5 @@
 let gid = (x: string) => document.getElementById(x);
+let parseTime = (t: number) => Math.floor(t/60) + ":" + Math.floor(t%60).toString().padStart(2, "0");
 
 function animateBackground(ms: number) {
   const C1 = inLevel ? "#000" : "#001", C2 = inLevel ? "#100" : "#112", W = 120;
@@ -84,27 +85,42 @@ levsel.element.onclick = function() {
   }
 }
 
-const MissTime = 400, OkTime = 150, PerfectTime = 50;
+const MissTime = 400, OkTime = 150, PerfectTime = 50, Offset = 40;
 
-class KeyWindow extends WindowThing {
+abstract class RhythmWindow extends WindowThing {
+  song: Song;
+  key: string;
+  constructor(x: number, y: number, w: number, h: number, song: Song, key: string, open = true) {
+    super(x, y, w, h, "", open);
+    this.song = song;
+    this.key = key;
+  }
+  abstract hit(e: KeyboardEvent): void;
+  abstract addInput(hit: number, windup: number): void;
+  doScore(badness: number) {
+    this.song.score += badness <= PerfectTime ? 1 : badness > OkTime ? 0 : 1 - 0.4 * ((badness - PerfectTime) / (OkTime - PerfectTime));
+    if(badness > OkTime) this.song.misses++;
+    this.song.maxScore += 1;
+  }
+}
+
+class KeyWindow extends RhythmWindow {
   song: Song;
   key: string;
   pendingInputs: ({time: number, el: HTMLDivElement})[] = [];
-  constructor(s: Song, x: number, y: number, w: number, h: number, key: string, open = true) {
-    super(x, y, w, h, "", open);
-    this.song = s;
-    this.key = key;
+  constructor(s: Song, x: number, y: number, w: number, h: number, k: string, open = true) {
+    super(x, y, w, h, s, k, open);
     document.addEventListener("keydown", (e) => { this.hit(e); });
     let hitzone = document.createElement("div");
     hitzone.classList.add("keywindow-hitzone");
-    hitzone.textContent = key;
+    hitzone.textContent = k;
     this.element.children[0].appendChild(hitzone);
   }
   hit(e: KeyboardEvent) {
     if(e.key != this.key) return;
     if(!this.pendingInputs.length) return;
     let tilNext = this.pendingInputs[0].time - Date.now();
-    let badness = Math.abs(tilNext + 40);
+    let badness = Math.abs(tilNext + Offset);
     if(badness < MissTime) {
       // Hit!
       this.pendingInputs[0].el.style.transitionDuration = "0.1s";
@@ -134,6 +150,7 @@ class KeyWindow extends WindowThing {
       }, 10);
       setTimeout(() => { particle.remove(); }, 510);
       this.pendingInputs.splice(0, 1);
+      this.doScore(badness);
     }
   }
   addInput(hit: number, windup: number) {
@@ -162,6 +179,8 @@ class KeyWindow extends WindowThing {
       }, 10);
       setTimeout(() => { particle.remove(); }, 510);
       this.pendingInputs.splice(0, 1);
+      this.song.maxScore += 1;
+      this.song.misses += 1;
     }, hit + MissTime);
     setTimeout(() => {
       el.remove();
@@ -173,7 +192,7 @@ class KeyWindow extends WindowThing {
   }
 }
 
-class GridWindow extends WindowThing {
+class GridWindow extends RhythmWindow {
   song: Song;
   key: string;
   private _gridWidth: number;
@@ -183,10 +202,8 @@ class GridWindow extends WindowThing {
   set gw(v: number) { this.setupGrid(v, this.gh); }
   set gh(v: number) { this.setupGrid(this.gw, v); }
   pendingInputs: number[] = [];
-  constructor(s: Song, x: number, y: number, w: number, h: number, key: string, gw: number, gh: number, open = true) {
-    super(x, y, w, h, "", open);
-    this.song = s;
-    this.key = key;
+  constructor(s: Song, x: number, y: number, w: number, h: number, k: string, gw: number, gh: number, open = true) {
+    super(x, y, w, h, s, k, open);
     document.addEventListener("keydown", (e) => { this.hit(e); });
     this.element.children[0].classList.add("gridwindow-main");
     this.setupGrid(gw, gh);
@@ -220,7 +237,7 @@ class GridWindow extends WindowThing {
     if(e.key != this.key) return;
     if(!this.pendingInputs.length) return;
     let tilNext = this.pendingInputs[0] - Date.now();
-    let badness = Math.abs(tilNext + 40);
+    let badness = Math.abs(tilNext + Offset);
     if(badness < MissTime) {
       // Hit!
       // Create a particle thingy
@@ -238,7 +255,6 @@ class GridWindow extends WindowThing {
       }
       //particle.textContent += " " + tilNext;
       particle.style.top = Math.round((this.gw - 0.5) / (this.gw) * 1000) / 10 + "%";
-      console.log(Math.round((this.gw - 0.5) / (this.gw) * 1000) / 10 + "%");
       this.element.children[0].appendChild(particle);
       setTimeout(() => {
         particle.style.translate = `0px -50px`;
@@ -246,6 +262,7 @@ class GridWindow extends WindowThing {
       }, 10);
       setTimeout(() => { particle.remove(); }, 510);
       this.pendingInputs.splice(0, 1);
+      this.doScore(badness);
     }
   }
   addInput(hit: number, windup: number) {
@@ -278,6 +295,8 @@ class GridWindow extends WindowThing {
       }, 10);
       setTimeout(() => { particle.remove(); }, 510);
       this.pendingInputs.splice(0, 1);
+      this.song.maxScore += 1;
+      this.song.misses += 1;
     }, hit + MissTime);
   }
   close() {
@@ -286,34 +305,53 @@ class GridWindow extends WindowThing {
   }
 }
 
+let songUI = new WindowThing(50, window.innerHeight - 150, 800, 100, "", false);
+
 class Song {
   title: string;
   duration: number;
   element: HTMLAudioElement;
-  baseTempo: number;
   tempo: number;
   actx: AudioContext;
+  score: number;
+  maxScore: number;
+  misses: number;
+  updateLoop: number;
   get mspb() { return 60000 / this.tempo; }
   countoff: number;
   startTime: number;
   constructor(title: string, duration: number, element: HTMLAudioElement, tempo: number, countoff: number, level: (S: Song) => void) {
-    this.title = title; this.duration = duration; this.element = element; this.baseTempo = tempo; this.tempo = tempo; this.countoff = countoff;
+    this.title = title; this.duration = duration; this.element = element; this.tempo = tempo; this.countoff = countoff;
     this.level = level;
-  }
-  start() {
-    this.tempo = this.baseTempo;
-    // Music!
     this.actx = new AudioContext();
     let track = this.actx.createMediaElementSource(this.element);
     let gain = this.actx.createGain();
     track.connect(gain).connect(this.actx.destination);
-    setTimeout(() => { this.element.play() }, this.countoff * this.mspb);
+  }
+  start() {
+    console.log("Starting...")
+    // Music!
+    setTimeout(() => { this.actx.resume(); this.element.play(); console.log("Playing sound"); }, this.countoff * this.mspb);
+    songUI.content = this.title;
+    songUI.reopen(100);
     // Play level!
     this.startTime = Date.now();
+    this.score = 0;
+    this.maxScore = 0;
+    this.misses = 0;
     this.level(this);
+    this.updateLoop = setInterval(() => {
+      let acc = this.score / this.maxScore;
+      songUI.content = this.title + " [" + parseTime(this.element.currentTime) + " / " + parseTime(this.duration) +
+        "]<br/>Score: " + (this.maxScore == 0 ? 0 : acc * 100).toFixed(2) + "% (" +
+        (this.score == 0 ? "—" : acc == 1 ? "P" : this.misses == 0 ? "FC" : acc > 0.97 ? "A+" : acc > 0.9 ? "A" : acc > 0.8 ? "B" : acc > 0.7 ? "C" : acc > 0.6 ? "D" : "Z") + ")";
+    }, 20);
   }
   stop() {
-    this.actx.close();
+    this.element.pause();
+    this.element.currentTime = 0;
+    clearInterval(this.updateLoop);
+    this.updateLoop = undefined;
   }
   level: (S: Song) => void;
 }
@@ -336,7 +374,7 @@ let hammerOfJustice = new Song("Hammer of Justice - Toby Fox", 136, gid("hammer-
       w01.addInput(b * (i + 3.5), b * 1.5);
     }
   }
-  let w1 = new KeyWindow(S, 100, 100, 200, 500, "s", false);
+  let w1 = new KeyWindow(S, 250, 100, 200, 500, "s", false);
   setTimeout(() => { w1.reopen(500); }, b * 15);
   w1.addInput(b * 20, b * 4);
   w1.addInput(b * 24, b * 4);
@@ -345,7 +383,7 @@ let hammerOfJustice = new Song("Hammer of Justice - Toby Fox", 136, gid("hammer-
   for(let i = 36.5; i < 66; i++) w1.addInput(b * i, b * 2);
 
   // Second part!
-  let w11 = new KeyWindow(S, 400, 50, 200, 500, "d", false);
+  let w11 = new KeyWindow(S, 445, 50, 200, 500, "d", false);
   setTimeout(() => { w1.close(); }, b * 66);
   setTimeout(() => { w11.reopen(500); }, b * 64);
   for(let i = 68; i <= 158; i += 4) {
@@ -374,7 +412,7 @@ let hammerOfJustice = new Song("Hammer of Justice - Toby Fox", 136, gid("hammer-
   for(let i = 96; i < 100; i ++) w2.addInput(b * i, b * 2);
   w2.addInput(b * 100.00, b * 2);
   w2.addInput(b * 100.75, b * 2);
-  w2.addInput(b * 101.50, b * 2);
+  w21.addInput(b * 101.50, b * 2);
   w21.addInput(b * 102, b * 2);
 
   w2.addInput(b * 107.0, b * 2);
@@ -383,17 +421,18 @@ let hammerOfJustice = new Song("Hammer of Justice - Toby Fox", 136, gid("hammer-
   w21.addInput(b * 110, b * 2);
   for(let i = 112; i <= 116; i ++) w2.addInput(b * i, b * 2);
   w2.addInput(b * 119.0, b * 2);
-  w2.addInput(b * 119.5, b * 2);
+  w21.addInput(b * 119.5, b * 2);
   w21.addInput(b * 120, b * 2);
   w21.addInput(b * 122, b * 2);
   w21.addInput(b * 123, b * 2);
   w2.addInput(b * 124.0, b * 2);
-  w2.addInput(b * 125.5, b * 2);
+  w21.addInput(b * 125.5, b * 2);
   w21.addInput(b * 126, b * 2);
   for(let i = 128; i <= 131; i ++) w2.addInput(b * i, b * 2);
 
   setTimeout(() => { w21.close(); w01.reopen(400); }, b * 131.5);
   w01.addInput(b * 133.5, b * 1.5);
+  w2.addInput(b * 134.0, b * 1.5);
   w01.addInput(b * 136.0, b * 1.0);
   w01.addInput(b * 137.5, b * 1.5);
   setTimeout(() => { w01.close(); w21.reopen(400); }, b * 138);
@@ -405,7 +444,7 @@ let hammerOfJustice = new Song("Hammer of Justice - Toby Fox", 136, gid("hammer-
   for(let i = 144; i <= 148; i ++) w2.addInput(b * i, b * 2);
   w2.addInput(b * 149.5, b * 2);
   w2.addInput(b * 150.0, b * 2);
-  w2.addInput(b * 151.0, b * 2);
+  w21.addInput(b * 151.0, b * 2);
   w21.addInput(b * 151.5, b * 2);
   w21.addInput(b * 152, b * 2);
   w2.addInput(b * 154, b * 2);
@@ -413,6 +452,55 @@ let hammerOfJustice = new Song("Hammer of Justice - Toby Fox", 136, gid("hammer-
   w21.addInput(b * 156, b * 2);
   w2.addInput(b * 157.5, b * 2);
   w2.addInput(b * 158.0, b * 2);
+  w2.addInput(b * 162.0, b * 2);
+  w2.addInput(b * 163.0, b * 2);
+
+  // Slow part...
+  setTimeout(() => { w11.close(); w2.close(); w21.close(); }, b * 158.5);
+  setTimeout(() => { w1.reopen(500); w2.reopen(400); w01.reopen(400); }, b * 160);
+  w01.addInput(b * 164, b * 2);
+  w1.addInput(b * 164, b * 4);
+  w1.addInput(b * 168.15584, b * 4.15584);
+  setTimeout(() => {
+    b = 60000 / 154;
+    // Everything is zeroed out again here. -164 to everything.
+    for(let i = 8; i <= 60; i++) { if(i % 4 == 0 || [10, 26, 42, 60].includes(i)) w1.addInput(b * i, b * 4); }
+    w01.addInput(b * 4, b * 2);
+    w01.addInput(b * 8, b * 2);
+    w01.addInput(b * 9.5, b * 1.5);
+    w2.addInput(b * 10, b * 1.5);
+    w01.addInput(b * 11.5, b * 1.5);
+    w2.addInput(b * 12, b * 1.5);
+    w01.addInput(b * 16, b * 2);
+    w01.addInput(b * 20, b * 2);
+    w01.addInput(b * 24, b * 2);
+    w01.addInput(b * 25.5, b * 1.5);
+    w01.addInput(b * 27.5, b * 1.0);
+    w2.addInput(b * 28, b * 1.5);
+    w01.addInput(b * 32, b * 2);
+    w01.addInput(b * 36, b * 2);
+    w01.addInput(b * 40, b * 2);
+    w01.addInput(b * 41.5, b * 1.5);
+    w2.addInput(b * 42, b * 1.5);
+    w01.addInput(b * 43.5, b * 1.5);
+    w2.addInput(b * 44, b * 1.5);
+    w01.addInput(b * 48, b * 2);
+    w01.addInput(b * 52, b * 2);
+    w01.addInput(b * 56, b * 2);
+    w01.addInput(b * 57.5, b * 1.5);
+    w01.addInput(b * 59.5, b * 1.0);
+    w2.addInput(b * 60, b * 1.5);
+    // There's something really weird going on
+    w1.addInput(b * 65.44375, b * 2);
+    setTimeout(() => {
+      b = 60000 / 160;
+      // Everything is zeroed out again! yippee
+      //for(let i = 2.5; i < 20; i++) { w1.addInput(b * i, b * 2); }
+      w2.addInput(b * 2, b * 1);
+      w2.addInput(b * 3, b * 1);
+      w2.addInput(b * 4, b * 1);
+    }, b * 65); // !!!! Random magic number !!!!
+  }, b * 164);
 });
 
 let inLevel = false;
@@ -427,7 +515,6 @@ playButton.element.onclick = function() {
 }
 
 document.addEventListener("keypress", (e) => {
-  console.log(e.key);
   if(e.key == "`" && inLevel) {
     inLevel = false;
     hammerOfJustice.stop();

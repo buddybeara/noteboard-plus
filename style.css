@@ -74,7 +74,7 @@
   display: grid;
 }
 .gridwindow-item {
-  padding-top: 25%;
+  padding-top: 10px;
   margin: 5px;
   border: 1px solid white;
   border-radius: 1px;
