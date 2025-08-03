@@ -13,6 +13,7 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
+var _a, _b;
 var gid = function (x) { return document.getElementById(x); };
 var parseTime = function (t) { return Math.floor(t / 60) + ":" + Math.floor(t % 60).toString().padStart(2, "0"); };
 function animateBackground(ms) {
@@ -125,12 +126,13 @@ levsel.element.onclick = function () {
         playButton.close();
     }
 };
-var audioOffsetter = new WindowThing(50, 600, 600, 100, "\n  Visual \u2190 Audio Offset: <input id=\"audio-offset\" type=\"range\" min=\"-100\" max=\"100\" step=\"1\" style=\"width:200px\">\n  <span id=\"ao-text\">0</span>ms<br/>\n  Visual \u2190 Input Offset:<span style=\"font-size:6px\">&nbsp;</span>\n  <input id=\"input-offset\" type=\"range\" min=\"-100\" max=\"100\" step=\"1\" style=\"width:200px\" value=\"40\"> <span id=\"io-text\">+40</span>ms", true, true);
+var audioOffsetter = new WindowThing(50, 600, 600, 100, "\n  Visual \u2190 Audio Offset: <input id=\"audio-offset\" type=\"range\" min=\"-100\" max=\"100\" step=\"1\" style=\"width:200px\" value=\"".concat(((_a = localStorage.getItem("offsetInfo")) === null || _a === void 0 ? void 0 : _a.split(";")[0]) || 0, "\">\n  <span id=\"ao-text\">0</span>ms<br/>\n  Visual \u2190 Input Offset:<span style=\"font-size:6px\">&nbsp;</span>\n  <input id=\"input-offset\" type=\"range\" min=\"-100\" max=\"100\" step=\"1\" style=\"width:200px\" value=\"").concat(((_b = localStorage.getItem("offsetInfo")) === null || _b === void 0 ? void 0 : _b.split(";")[1]) || 40, "\"> <span id=\"io-text\">0</span>ms"), true, true);
 setInterval(function () {
     // update the thingies
     var fmt = function (x) { return (parseInt(x) > 0 ? "+" : "") + parseInt(x); };
     gid("ao-text").textContent = fmt(gid("audio-offset").value);
     gid("io-text").textContent = fmt(gid("input-offset").value);
+    localStorage.setItem("offsetInfo", gid("audio-offset").value + ";" + gid("input-offset").value);
 }, 50);
 var MissTime = 400, OkTime = 150, PerfectTime = 50;
 var RhythmWindow = /** @class */ (function (_super) {
@@ -422,7 +424,7 @@ var Song = /** @class */ (function () {
             gid("clear").style.top = "25%";
             levsel.reopen(100);
             levsel.content = "Level Select";
-            setTimeout(function () { gid("curtain").style.top = "-100%"; gid("clear").style.top = "-100%"; }, 5000);
+            setTimeout(function () { gid("curtain").style.top = "-100%"; gid("clear").style.top = "-100%"; audioOffsetter.reopen(100); }, 5000);
             for (var i = allWins.length - 1; i >= 0; i--) {
                 if (!allWins[i].isEssential)
                     allWins[i].destroy();
@@ -431,6 +433,7 @@ var Song = /** @class */ (function () {
     };
     Song.prototype.stop = function () {
         this.element.pause();
+        songUI.close();
         this.element.currentTime = 0;
         clearInterval(this.updateLoop);
         this.updateLoop = undefined;
@@ -735,9 +738,10 @@ document.addEventListener("keypress", function (e) {
         inLevel = false;
         hammerOfJustice.stop();
         gid("curtain").style.top = "0%";
+        songUI.close();
         levsel.reopen(100);
         levsel.content = "Level Select";
-        setTimeout(function () { gid("curtain").style.top = "-100%"; }, 500);
+        setTimeout(function () { gid("curtain").style.top = "-100%"; audioOffsetter.reopen(100); }, 500);
         for (var i = allWins.length - 1; i >= 0; i--) {
             if (!allWins[i].isEssential)
                 allWins[i].destroy();

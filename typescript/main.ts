@@ -88,15 +88,16 @@ levsel.element.onclick = function() {
 }
 
 let audioOffsetter = new WindowThing(50, 600, 600, 100, `
-  Visual ← Audio Offset: <input id="audio-offset" type="range" min="-100" max="100" step="1" style="width:200px">
+  Visual ← Audio Offset: <input id="audio-offset" type="range" min="-100" max="100" step="1" style="width:200px" value="${localStorage.getItem("offsetInfo")?.split(";")[0] || 0}">
   <span id="ao-text">0</span>ms<br/>
   Visual ← Input Offset:<span style="font-size:6px">&nbsp;</span>
-  <input id="input-offset" type="range" min="-100" max="100" step="1" style="width:200px" value="40"> <span id="io-text">+40</span>ms`, true, true);
+  <input id="input-offset" type="range" min="-100" max="100" step="1" style="width:200px" value="${localStorage.getItem("offsetInfo")?.split(";")[1] || 40}"> <span id="io-text">0</span>ms`, true, true);
 setInterval(() => {
   // update the thingies
   let fmt = (x: string) => (parseInt(x) > 0 ? "+" : "") + parseInt(x);
   gid("ao-text").textContent = fmt((gid("audio-offset") as HTMLInputElement).value);
   gid("io-text").textContent = fmt((gid("input-offset") as HTMLInputElement).value);
+  localStorage.setItem("offsetInfo", (gid("audio-offset") as HTMLInputElement).value + ";" + (gid("input-offset") as HTMLInputElement).value);
 }, 50);
 
 const MissTime = 400, OkTime = 150, PerfectTime = 50;
@@ -366,7 +367,7 @@ class Song {
       gid("clear").style.top = "25%";
       levsel.reopen(100);
       levsel.content = "Level Select";
-      setTimeout(() => { gid("curtain").style.top = "-100%"; gid("clear").style.top = "-100%"; }, 5000);
+      setTimeout(() => { gid("curtain").style.top = "-100%"; gid("clear").style.top = "-100%"; audioOffsetter.reopen(100); }, 5000);
       for(let i = allWins.length - 1; i >= 0; i--) {
         if(!allWins[i].isEssential) allWins[i].destroy();
       }
@@ -374,6 +375,7 @@ class Song {
   }
   stop() {
     this.element.pause();
+    songUI.close();
     this.element.currentTime = 0;
     clearInterval(this.updateLoop);
     this.updateLoop = undefined;
@@ -667,9 +669,10 @@ document.addEventListener("keypress", (e) => {
     inLevel = false;
     hammerOfJustice.stop();
     gid("curtain").style.top = "0%";
+    songUI.close();
     levsel.reopen(100);
     levsel.content = "Level Select";
-    setTimeout(() => { gid("curtain").style.top = "-100%"; }, 500);
+    setTimeout(() => { gid("curtain").style.top = "-100%"; audioOffsetter.reopen(100); }, 500);
     for(let i = allWins.length - 1; i >= 0; i--) {
       if(!allWins[i].isEssential) allWins[i].destroy();
     }
