@@ -50,14 +50,16 @@ function createWindow(x, y, w, h, open) {
 }
 var allWins = [];
 var WindowThing = /** @class */ (function () {
-    function WindowThing(x, y, w, h, text, open) {
+    function WindowThing(x, y, w, h, text, open, ess) {
         if (open === void 0) { open = true; }
+        if (ess === void 0) { ess = false; }
         allWins.push(this);
         this.element = createWindow(x, y, w, h, open);
         if (text)
             this.content = text;
         if (!open)
             this.close();
+        this.isEssential = ess;
     }
     Object.defineProperty(WindowThing.prototype, "content", {
         get: function () { return this.element.children[0].innerHTML; },
@@ -105,10 +107,10 @@ var WindowThing = /** @class */ (function () {
     };
     return WindowThing;
 }());
-var levsel = new WindowThing(50, 50, 800, 100, "Level Select");
+var levsel = new WindowThing(50, 50, 800, 100, "Level Select", true, true);
 levsel.element.id = "levsel";
 levsel.element.classList.add("windowbutton");
-var playButton = new WindowThing(600, 300, 200, 100, "Start", false);
+var playButton = new WindowThing(600, 300, 200, 100, "Start", false, true);
 playButton.element.classList.add("windowbutton");
 playButton.element.id = "playbutton";
 levsel.element.onclick = function () {
@@ -123,7 +125,14 @@ levsel.element.onclick = function () {
         playButton.close();
     }
 };
-var MissTime = 400, OkTime = 150, PerfectTime = 50, Offset = 40;
+var audioOffsetter = new WindowThing(50, 600, 600, 100, "\n  Visual \u2190 Audio Offset: <input id=\"audio-offset\" type=\"range\" min=\"-100\" max=\"100\" step=\"1\" style=\"width:200px\">\n  <span id=\"ao-text\">0</span>ms<br/>\n  Visual \u2190 Input Offset:<span style=\"font-size:6px\">&nbsp;</span>\n  <input id=\"input-offset\" type=\"range\" min=\"-100\" max=\"100\" step=\"1\" style=\"width:200px\" value=\"40\"> <span id=\"io-text\">+40</span>ms", true, true);
+setInterval(function () {
+    // update the thingies
+    var fmt = function (x) { return (parseInt(x) > 0 ? "+" : "") + parseInt(x); };
+    gid("ao-text").textContent = fmt(gid("audio-offset").value);
+    gid("io-text").textContent = fmt(gid("input-offset").value);
+}, 50);
+var MissTime = 400, OkTime = 150, PerfectTime = 50;
 var RhythmWindow = /** @class */ (function (_super) {
     __extends(RhythmWindow, _super);
     function RhythmWindow(x, y, w, h, song, key, open) {
@@ -138,6 +147,21 @@ var RhythmWindow = /** @class */ (function (_super) {
         if (badness > OkTime)
             this.song.misses++;
         this.song.maxScore += 1;
+    };
+    RhythmWindow.prototype.formatParticle = function (badness, particle) {
+        particle.classList.add("particle");
+        if (badness < PerfectTime) {
+            particle.textContent = "perfect!";
+            particle.style.color = "lime";
+        }
+        else if (badness < OkTime) {
+            particle.textContent = "ok!";
+            particle.style.color = "yellow";
+        }
+        else { // miss
+            particle.textContent = "miss";
+            particle.style.color = "#f77";
+        }
     };
     return RhythmWindow;
 }(WindowThing));
@@ -160,7 +184,7 @@ var KeyWindow = /** @class */ (function (_super) {
         if (!this.pendingInputs.length)
             return;
         var tilNext = this.pendingInputs[0].time - Date.now();
-        var badness = Math.abs(tilNext + Offset);
+        var badness = Math.abs(tilNext + parseInt(gid("input-offset").value));
         if (badness < MissTime) {
             // Hit!
             this.pendingInputs[0].el.style.transitionDuration = "0.1s";
@@ -170,20 +194,7 @@ var KeyWindow = /** @class */ (function (_super) {
             this.pendingInputs[0].el.style.opacity = "0";
             // Create a particle thingy
             var particle_1 = document.createElement("div");
-            particle_1.classList.add("particle");
-            if (badness < PerfectTime) {
-                particle_1.textContent = "perfect!";
-                particle_1.style.color = "lime";
-            }
-            else if (Math.abs(tilNext) < OkTime) {
-                particle_1.textContent = "ok!";
-                particle_1.style.color = "yellow";
-            }
-            else { // miss
-                particle_1.textContent = "miss";
-                particle_1.style.color = "#f77";
-            }
-            //particle.textContent += " " + tilNext;
+            this.formatParticle(badness, particle_1);
             particle_1.style.top = this.pendingInputs[0].el.style.top;
             this.element.children[0].appendChild(particle_1);
             setTimeout(function () {
@@ -200,7 +211,7 @@ var KeyWindow = /** @class */ (function (_super) {
         var el = document.createElement("div");
         el.classList.add("keywindow-input");
         el.style.top = "-90px";
-        el.style.transitionDuration = (windup * 1.55) + "ms"; // idk what's up with this
+        el.style.transitionDuration = (windup * 1.54) + "ms"; // idk what's up with this
         this.element.children[0].appendChild(el);
         this.pendingInputs.push({ time: Date.now() + hit, el: el });
         setTimeout(function () {
@@ -292,25 +303,12 @@ var GridWindow = /** @class */ (function (_super) {
         if (!this.pendingInputs.length)
             return;
         var tilNext = this.pendingInputs[0] - Date.now();
-        var badness = Math.abs(tilNext + Offset);
+        var badness = Math.abs(tilNext + parseInt(gid("input-offset").value));
         if (badness < MissTime) {
             // Hit!
             // Create a particle thingy
             var particle_2 = document.createElement("div");
-            particle_2.classList.add("particle");
-            if (badness < PerfectTime) {
-                particle_2.textContent = "perfect!";
-                particle_2.style.color = "lime";
-            }
-            else if (Math.abs(tilNext) < OkTime) {
-                particle_2.textContent = "ok!";
-                particle_2.style.color = "yellow";
-            }
-            else { // miss
-                particle_2.textContent = "miss";
-                particle_2.style.color = "#f77";
-            }
-            //particle.textContent += " " + tilNext;
+            this.formatParticle(badness, particle_2);
             particle_2.style.top = Math.round((this.gw - 0.5) / (this.gw) * 1000) / 10 + "%";
             this.element.children[0].appendChild(particle_2);
             setTimeout(function () {
@@ -370,7 +368,7 @@ var GridWindow = /** @class */ (function (_super) {
     };
     return GridWindow;
 }(RhythmWindow));
-var songUI = new WindowThing(50, window.innerHeight - 200, 800, 125, "", false);
+var songUI = new WindowThing(50, window.innerHeight - 200, 800, 125, "", false, true);
 var Song = /** @class */ (function () {
     function Song(title, duration, element, tempo, countoff, level) {
         this.title = title;
@@ -393,7 +391,7 @@ var Song = /** @class */ (function () {
         var _this = this;
         console.log("Starting...");
         // Music!
-        setTimeout(function () { _this.actx.resume(); _this.element.play(); console.log("Playing sound"); }, this.countoff * this.mspb);
+        setTimeout(function () { _this.actx.resume(); _this.element.play(); console.log("Playing sound"); }, this.countoff * this.mspb + 100 + parseInt(gid("audio-offset").value));
         songUI.content = this.title;
         songUI.reopen(125);
         // Play level!
@@ -401,7 +399,7 @@ var Song = /** @class */ (function () {
         this.score = 0;
         this.maxScore = 0;
         this.misses = 0;
-        this.level(this);
+        setTimeout(function () { return _this.level(_this); }, 100); // have to do an extra 100ms because the offset could be up to -100ms
         this.updateLoop = setInterval(function () {
             var acc = _this.score / _this.maxScore;
             songUI.content = _this.title + " [" + parseTime(_this.element.currentTime) + " / " + parseTime(_this.duration) +
@@ -423,12 +421,13 @@ var Song = /** @class */ (function () {
                 (_this.score == 0 ? "undefined??" : acc == 1 ? "ALL PERFECT! :::3" : _this.misses == 0 ? "FULL COMBO :3" : acc > 0.99 ? "SUPREME :O" : acc > 0.98 ? "superb+ :D" : acc > 0.98 ? "superb :D" : acc > 0.96 ? "awesome+ (:" : acc > 0.9 ? "awesome (:" : acc > 0.86 ? "nice+ :)" : acc > 0.8 ? "nice" : acc > 0.76 ? "ok+" : acc > 0.7 ? "ok" : acc > 0.6 ? "eh" : "none :C");
             gid("clear").style.top = "25%";
             levsel.reopen(100);
+            levsel.content = "Level Select";
             setTimeout(function () { gid("curtain").style.top = "-100%"; gid("clear").style.top = "-100%"; }, 5000);
             for (var i = allWins.length - 1; i >= 0; i--) {
-                if (allWins[i].element.id != "levsel" && allWins[i].element.id != "playbutton")
+                if (!allWins[i].isEssential)
                     allWins[i].destroy();
             }
-        }, 1000 + this.duration * 1000);
+        }, 500 + this.duration * 1000 + this.countoff * this.mspb);
     };
     Song.prototype.stop = function () {
         this.element.pause();
@@ -724,8 +723,10 @@ playButton.element.onclick = function () {
         return; // Can't start two levels at once
     inLevel = true;
     gid("curtain").style.top = "0%";
-    levsel.close();
-    playButton.close();
+    for (var _i = 0, allWins_1 = allWins; _i < allWins_1.length; _i++) {
+        var i = allWins_1[_i];
+        i.close();
+    }
     setTimeout(function () { gid("curtain").style.top = "-100%"; }, 500);
     setTimeout(function () { hammerOfJustice.start(); }, 1000);
 };
@@ -735,9 +736,10 @@ document.addEventListener("keypress", function (e) {
         hammerOfJustice.stop();
         gid("curtain").style.top = "0%";
         levsel.reopen(100);
+        levsel.content = "Level Select";
         setTimeout(function () { gid("curtain").style.top = "-100%"; }, 500);
         for (var i = allWins.length - 1; i >= 0; i--) {
-            if (allWins[i].element.id != "levsel" && allWins[i].element.id != "playbutton")
+            if (!allWins[i].isEssential)
                 allWins[i].destroy();
         }
     }

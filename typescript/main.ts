@@ -44,11 +44,13 @@ class WindowThing {
   set y(v: number) { this.element.style.top = v + "px"; }
   set w(v: number) { this.element.style.width = v + "px"; }
   set h(v: number) { this.element.style.height = v + "px"; }
-  constructor(x: number, y: number, w: number, h: number, text?: string, open = true) {
+  isEssential: boolean;
+  constructor(x: number, y: number, w: number, h: number, text?: string, open = true, ess = false) {
     allWins.push(this);
     this.element = createWindow(x, y, w, h, open);
     if(text) this.content = text;
     if(!open) this.close();
+    this.isEssential = ess;
   }
   close() {
     this.h = 70;
@@ -66,10 +68,10 @@ class WindowThing {
   }
 }
 
-let levsel = new WindowThing(50, 50, 800, 100, "Level Select");
+let levsel = new WindowThing(50, 50, 800, 100, "Level Select", true, true);
 levsel.element.id = "levsel";
 levsel.element.classList.add("windowbutton");
-let playButton = new WindowThing(600, 300, 200, 100, "Start", false);
+let playButton = new WindowThing(600, 300, 200, 100, "Start", false, true);
 playButton.element.classList.add("windowbutton");
 playButton.element.id = "playbutton";
 
@@ -85,7 +87,19 @@ levsel.element.onclick = function() {
   }
 }
 
-const MissTime = 400, OkTime = 150, PerfectTime = 50, Offset = 40;
+let audioOffsetter = new WindowThing(50, 600, 600, 100, `
+  Visual ← Audio Offset: <input id="audio-offset" type="range" min="-100" max="100" step="1" style="width:200px">
+  <span id="ao-text">0</span>ms<br/>
+  Visual ← Input Offset:<span style="font-size:6px">&nbsp;</span>
+  <input id="input-offset" type="range" min="-100" max="100" step="1" style="width:200px" value="40"> <span id="io-text">+40</span>ms`, true, true);
+setInterval(() => {
+  // update the thingies
+  let fmt = (x: string) => (parseInt(x) > 0 ? "+" : "") + parseInt(x);
+  gid("ao-text").textContent = fmt((gid("audio-offset") as HTMLInputElement).value);
+  gid("io-text").textContent = fmt((gid("input-offset") as HTMLInputElement).value);
+}, 50);
+
+const MissTime = 400, OkTime = 150, PerfectTime = 50;
 
 abstract class RhythmWindow extends WindowThing {
   song: Song;
@@ -101,6 +115,19 @@ abstract class RhythmWindow extends WindowThing {
     this.song.score += badness <= PerfectTime ? 1 : badness > OkTime ? 0 : 1 - 0.4 * ((badness - PerfectTime) / (OkTime - PerfectTime));
     if(badness > OkTime) this.song.misses++;
     this.song.maxScore += 1;
+  }
+  formatParticle(badness: number, particle: HTMLElement) {
+    particle.classList.add("particle");
+    if(badness < PerfectTime) {
+      particle.textContent = "perfect!";
+      particle.style.color = "lime";
+    } else if(badness < OkTime) {
+      particle.textContent = "ok!";
+      particle.style.color = "yellow";
+    } else { // miss
+      particle.textContent = "miss";
+      particle.style.color = "#f77";
+    }
   }
 }
 
@@ -120,7 +147,7 @@ class KeyWindow extends RhythmWindow {
     if(e.key != this.key) return;
     if(!this.pendingInputs.length) return;
     let tilNext = this.pendingInputs[0].time - Date.now();
-    let badness = Math.abs(tilNext + Offset);
+    let badness = Math.abs(tilNext + parseInt((gid("input-offset") as HTMLInputElement).value));
     if(badness < MissTime) {
       // Hit!
       this.pendingInputs[0].el.style.transitionDuration = "0.1s";
@@ -130,18 +157,7 @@ class KeyWindow extends RhythmWindow {
       this.pendingInputs[0].el.style.opacity = "0";
       // Create a particle thingy
       let particle = document.createElement("div");
-      particle.classList.add("particle");
-      if(badness < PerfectTime) {
-        particle.textContent = "perfect!";
-        particle.style.color = "lime";
-      } else if(Math.abs(tilNext) < OkTime) {
-        particle.textContent = "ok!";
-        particle.style.color = "yellow";
-      } else { // miss
-        particle.textContent = "miss";
-        particle.style.color = "#f77";
-      }
-      //particle.textContent += " " + tilNext;
+      this.formatParticle(badness, particle);
       particle.style.top = this.pendingInputs[0].el.style.top;
       this.element.children[0].appendChild(particle);
       setTimeout(() => {
@@ -157,7 +173,7 @@ class KeyWindow extends RhythmWindow {
     let el = document.createElement("div");
     el.classList.add("keywindow-input");
     el.style.top = "-90px";
-    el.style.transitionDuration = (windup * 1.55) + "ms"; // idk what's up with this
+    el.style.transitionDuration = (windup * 1.54) + "ms"; // idk what's up with this
     this.element.children[0].appendChild(el);
     this.pendingInputs.push({time: Date.now() + hit, el: el});
     setTimeout(() => {
@@ -237,23 +253,12 @@ class GridWindow extends RhythmWindow {
     if(e.key != this.key) return;
     if(!this.pendingInputs.length) return;
     let tilNext = this.pendingInputs[0] - Date.now();
-    let badness = Math.abs(tilNext + Offset);
+    let badness = Math.abs(tilNext + parseInt((gid("input-offset") as HTMLInputElement).value));
     if(badness < MissTime) {
       // Hit!
       // Create a particle thingy
       let particle = document.createElement("div");
-      particle.classList.add("particle");
-      if(badness < PerfectTime) {
-        particle.textContent = "perfect!";
-        particle.style.color = "lime";
-      } else if(Math.abs(tilNext) < OkTime) {
-        particle.textContent = "ok!";
-        particle.style.color = "yellow";
-      } else { // miss
-        particle.textContent = "miss";
-        particle.style.color = "#f77";
-      }
-      //particle.textContent += " " + tilNext;
+      this.formatParticle(badness, particle);
       particle.style.top = Math.round((this.gw - 0.5) / (this.gw) * 1000) / 10 + "%";
       this.element.children[0].appendChild(particle);
       setTimeout(() => {
@@ -305,7 +310,7 @@ class GridWindow extends RhythmWindow {
   }
 }
 
-let songUI = new WindowThing(50, window.innerHeight - 200, 800, 125, "", false);
+let songUI = new WindowThing(50, window.innerHeight - 200, 800, 125, "", false, true);
 
 class Song {
   title: string;
@@ -331,7 +336,7 @@ class Song {
   start() {
     console.log("Starting...")
     // Music!
-    setTimeout(() => { this.actx.resume(); this.element.play(); console.log("Playing sound"); }, this.countoff * this.mspb);
+    setTimeout(() => { this.actx.resume(); this.element.play(); console.log("Playing sound"); }, this.countoff * this.mspb + 100 + parseInt((gid("audio-offset") as HTMLInputElement).value));
     songUI.content = this.title;
     songUI.reopen(125);
     // Play level!
@@ -339,7 +344,7 @@ class Song {
     this.score = 0;
     this.maxScore = 0;
     this.misses = 0;
-    this.level(this);
+    setTimeout(() => this.level(this), 100); // have to do an extra 100ms because the offset could be up to -100ms
     this.updateLoop = setInterval(() => {
       let acc = this.score / this.maxScore;
       songUI.content = this.title + " [" + parseTime(this.element.currentTime) + " / " + parseTime(this.duration) +
@@ -360,11 +365,12 @@ class Song {
         (this.score == 0 ? "undefined??" : acc == 1 ? "ALL PERFECT! :::3" : this.misses == 0 ? "FULL COMBO :3" : acc > 0.99 ? "SUPREME :O" : acc > 0.98 ? "superb+ :D" : acc > 0.98 ? "superb :D" : acc > 0.96 ? "awesome+ (:" : acc > 0.9 ? "awesome (:" : acc > 0.86 ? "nice+ :)" : acc > 0.8 ? "nice" : acc > 0.76 ? "ok+" : acc > 0.7 ? "ok" : acc > 0.6 ? "eh" : "none :C");
       gid("clear").style.top = "25%";
       levsel.reopen(100);
+      levsel.content = "Level Select";
       setTimeout(() => { gid("curtain").style.top = "-100%"; gid("clear").style.top = "-100%"; }, 5000);
       for(let i = allWins.length - 1; i >= 0; i--) {
-        if(allWins[i].element.id != "levsel" && allWins[i].element.id != "playbutton") allWins[i].destroy();
+        if(!allWins[i].isEssential) allWins[i].destroy();
       }
-    }, 1000 + this.duration * 1000);
+    }, 500 + this.duration * 1000 + this.countoff * this.mspb);
   }
   stop() {
     this.element.pause();
@@ -651,8 +657,7 @@ playButton.element.onclick = function() {
   if(inLevel) return; // Can't start two levels at once
   inLevel = true;
   gid("curtain").style.top = "0%";
-  levsel.close();
-  playButton.close();
+  for(let i of allWins) { i.close(); }
   setTimeout(() => { gid("curtain").style.top = "-100%"; }, 500);
   setTimeout(() => { hammerOfJustice.start(); }, 1000);
 }
@@ -663,9 +668,10 @@ document.addEventListener("keypress", (e) => {
     hammerOfJustice.stop();
     gid("curtain").style.top = "0%";
     levsel.reopen(100);
+    levsel.content = "Level Select";
     setTimeout(() => { gid("curtain").style.top = "-100%"; }, 500);
     for(let i = allWins.length - 1; i >= 0; i--) {
-      if(allWins[i].element.id != "levsel" && allWins[i].element.id != "playbutton") allWins[i].destroy();
+      if(!allWins[i].isEssential) allWins[i].destroy();
     }
   }
 });
