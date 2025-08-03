@@ -84,3 +84,15 @@
   border: 3px solid #7aa;
   color: white;
 }
+#clear {
+  position: absolute;
+  top: 0%;
+  width: 100%;
+  text-align: center;
+  color: white;
+  font-family: monospace;
+  font-size: 48px;
+  transition: 0.3s;
+  user-select: none;
+  pointer-events: none;
+}

@@ -157,7 +157,7 @@ class KeyWindow extends RhythmWindow {
     let el = document.createElement("div");
     el.classList.add("keywindow-input");
     el.style.top = "-90px";
-    el.style.transitionDuration = (windup * 1.612) + "ms"; // idk what's up with this
+    el.style.transitionDuration = (windup * 1.55) + "ms"; // idk what's up with this
     this.element.children[0].appendChild(el);
     this.pendingInputs.push({time: Date.now() + hit, el: el});
     setTimeout(() => {
@@ -305,7 +305,7 @@ class GridWindow extends RhythmWindow {
   }
 }
 
-let songUI = new WindowThing(50, window.innerHeight - 150, 800, 100, "", false);
+let songUI = new WindowThing(50, window.innerHeight - 200, 800, 125, "", false);
 
 class Song {
   title: string;
@@ -333,7 +333,7 @@ class Song {
     // Music!
     setTimeout(() => { this.actx.resume(); this.element.play(); console.log("Playing sound"); }, this.countoff * this.mspb);
     songUI.content = this.title;
-    songUI.reopen(100);
+    songUI.reopen(125);
     // Play level!
     this.startTime = Date.now();
     this.score = 0;
@@ -344,8 +344,27 @@ class Song {
       let acc = this.score / this.maxScore;
       songUI.content = this.title + " [" + parseTime(this.element.currentTime) + " / " + parseTime(this.duration) +
         "]<br/>Score: " + (this.maxScore == 0 ? 0 : acc * 100).toFixed(2) + "% (" +
-        (this.score == 0 ? "—" : acc == 1 ? "P" : this.misses == 0 ? "FC" : acc > 0.97 ? "A+" : acc > 0.9 ? "A" : acc > 0.8 ? "B" : acc > 0.7 ? "C" : acc > 0.6 ? "D" : "Z") + ")";
+        (this.score == 0 ? "—" : acc == 1 ? "AllPerfect!!" : this.misses == 0 ? "FullCombo!" : acc > 0.99 ? "SS!" : acc > 0.98 ? "S+!" : acc > 0.98 ? "S" : acc > 0.96 ? "A+" : acc > 0.9 ? "A" : acc > 0.86 ? "B+" : acc > 0.8 ? "B" : acc > 0.76 ? "C+" : acc > 0.7 ? "C" : acc > 0.6 ? "D" : "Z") + ")" +
+        "<br/>Press ` to exit"
     }, 20);
+    // Get ready to stop the level!!
+    let thisStartTime = this.startTime * 1.0;
+    setTimeout(() => {
+      // check if still in level
+      if(this.startTime != thisStartTime || !inLevel) return;
+      inLevel = false;
+      this.stop();
+      gid("curtain").style.top = "0%";
+      let acc = this.score / this.maxScore;
+      gid("clear").innerHTML = `LEVEL CLEAR !!!<br/>SONG: ${this.title}<br/>HITS: ${this.maxScore - this.misses}<br/>MISSES: ${this.misses}<br/>SCORE: ${(this.maxScore == 0 ? 0 : acc * 100).toFixed(2)}%<br/>RANK: ` +
+        (this.score == 0 ? "undefined??" : acc == 1 ? "ALL PERFECT! :::3" : this.misses == 0 ? "FULL COMBO :3" : acc > 0.99 ? "SUPREME :O" : acc > 0.98 ? "superb+ :D" : acc > 0.98 ? "superb :D" : acc > 0.96 ? "awesome+ (:" : acc > 0.9 ? "awesome (:" : acc > 0.86 ? "nice+ :)" : acc > 0.8 ? "nice" : acc > 0.76 ? "ok+" : acc > 0.7 ? "ok" : acc > 0.6 ? "eh" : "none :C");
+      gid("clear").style.top = "25%";
+      levsel.reopen(100);
+      setTimeout(() => { gid("curtain").style.top = "-100%"; gid("clear").style.top = "-100%"; }, 5000);
+      for(let i = allWins.length - 1; i >= 0; i--) {
+        if(allWins[i].element.id != "levsel" && allWins[i].element.id != "playbutton") allWins[i].destroy();
+      }
+    }, 1000 + this.duration * 1000);
   }
   stop() {
     this.element.pause();
@@ -355,7 +374,7 @@ class Song {
   }
   level: (S: Song) => void;
 }
-let hammerOfJustice = new Song("Hammer of Justice - Toby Fox", 136, gid("hammer-of-justice") as HTMLAudioElement, 160, 4, (S: Song) => {
+let hammerOfJustice = new Song("Hammer of Justice - Toby Fox", 138, gid("hammer-of-justice") as HTMLAudioElement, 160, 4, (S: Song) => {
   let b = S.mspb;
   let w0 = new GridWindow(S, 800, 200, 200, 400, "j", 4, 1);
   for(let i = 4; i <= 64; i += 4) {
@@ -492,13 +511,137 @@ let hammerOfJustice = new Song("Hammer of Justice - Toby Fox", 136, gid("hammer-
     w2.addInput(b * 60, b * 1.5);
     // There's something really weird going on
     w1.addInput(b * 65.44375, b * 2);
+    w1.addInput(b * 66.40625, b * 2);
+    w01.addInput(b * 65, b * 1.925); // ?
     setTimeout(() => {
       b = 60000 / 160;
       // Everything is zeroed out again! yippee
-      //for(let i = 2.5; i < 20; i++) { w1.addInput(b * i, b * 2); }
-      w2.addInput(b * 2, b * 1);
-      w2.addInput(b * 3, b * 1);
-      w2.addInput(b * 4, b * 1);
+      for(let i = 2.5; i < 96; i++) { w1.addInput(b * i, b * 2); }
+      w01.addInput(b * 4, b * 2);
+      w01.addInput(b * 8, b * 2);
+      w01.addInput(b * 9.5, b * 1.5);
+      w2.addInput(b * 10, b * 1.5);
+      w01.addInput(b * 11.5, b * 1.5);
+      w2.addInput(b * 12, b * 1.5);
+      w01.addInput(b * 16, b * 2);
+      w01.addInput(b * 20, b * 2);
+      w01.addInput(b * 24, b * 2);
+      w01.addInput(b * 25.5, b * 1.5);
+      w01.addInput(b * 27.5, b * 1.0);
+      w2.addInput(b * 28, b * 1.5);
+      w01.addInput(b * 32, b * 2);
+      w01.addInput(b * 36, b * 2);
+      w01.addInput(b * 40, b * 2);
+      w01.addInput(b * 41.5, b * 1.5);
+      w2.addInput(b * 42, b * 1.5);
+      w01.addInput(b * 43.5, b * 1.5);
+      w2.addInput(b * 44, b * 1.5);
+      w01.addInput(b * 48, b * 2);
+      w01.addInput(b * 52, b * 2);
+      w01.addInput(b * 56, b * 2);
+      w01.addInput(b * 57.5, b * 1.5);
+      w01.addInput(b * 59.5, b * 1.0);
+      w2.addInput(b * 60, b * 1.5);
+
+      setTimeout(() => { w01.close(); w21.reopen(400); }, b * 61);
+      w21.addInput(b * 64, b * 2);
+      w2.addInput(b * 65, b * 2);
+      w2.addInput(b * 65.5, b * 2);
+      w21.addInput(b * 66, b * 2);
+      w21.addInput(b * 66.5, b * 2);
+      w2.addInput(b * 67.5, b * 2);
+      w21.addInput(b * 68.5, b * 2);
+      w2.addInput(b * 69, b * 2);
+      w2.addInput(b * 69.5, b * 2);
+      w21.addInput(b * 70, b * 2);
+      w21.addInput(b * 70.5, b * 2);
+      w2.addInput(b * 71.5, b * 2);
+      w21.addInput(b * 72.5, b * 2);
+      w2.addInput(b * 73, b * 2);
+      w2.addInput(b * 73.5, b * 2);
+      w21.addInput(b * 74, b * 2);
+      w2.addInput(b * 75, b * 2);
+      w21.addInput(b * 75.5, b * 2);
+      w21.addInput(b * 76.5, b * 2);
+      w21.addInput(b * 77, b * 2);
+      w2.addInput(b * 77.5, b * 2);
+      w2.addInput(b * 78, b * 2);
+      w21.addInput(b * 79, b * 2);
+      // Change it up a bit...
+      w21.addInput(b * 80, b * 2);
+      w2.addInput(b * 81, b * 2);
+      w2.addInput(b * 81.5, b * 2);
+      w21.addInput(b * 82, b * 2);
+      w21.addInput(b * 82.5, b * 2);
+      w2.addInput(b * 83.5, b * 2);
+      w21.addInput(b * 84.5, b * 2);
+      w2.addInput(b * 85, b * 2);
+      w2.addInput(b * 85.5, b * 2);
+      w21.addInput(b * 86, b * 2);
+      w21.addInput(b * 86.5, b * 2);
+      w2.addInput(b * 87.5, b * 2);
+      w21.addInput(b * 88, b * 2);
+      w2.addInput(b * 88.5, b * 2);
+      w21.addInput(b * 89, b * 2);
+      w21.addInput(b * 89.5, b * 2);
+      w2.addInput(b * 91, b * 2);
+      w21.addInput(b * 91.5, b * 2);
+      w2.addInput(b * 92, b * 2);
+      w21.addInput(b * 93, b * 2);
+      w2.addInput(b * 94, b * 2);
+      w21.addInput(b * 95, b * 2);
+      setTimeout(() => { w1.close(); }, b * 96);
+      // okay I am not doing this again so I'm going to instead copy paste it :3
+      setTimeout(() => {
+        w21.addInput(b * 64, b * 2);
+        w2.addInput(b * 65, b * 2);
+        w2.addInput(b * 65.5, b * 2);
+        w21.addInput(b * 66, b * 2);
+        w21.addInput(b * 66.5, b * 2);
+        w2.addInput(b * 67.5, b * 2);
+        w21.addInput(b * 68.5, b * 2);
+        w2.addInput(b * 69, b * 2);
+        w2.addInput(b * 69.5, b * 2);
+        w21.addInput(b * 70, b * 2);
+        w21.addInput(b * 70.5, b * 2);
+        w2.addInput(b * 71.5, b * 2);
+        w21.addInput(b * 72.5, b * 2);
+        w2.addInput(b * 73, b * 2);
+        w2.addInput(b * 73.5, b * 2);
+        w21.addInput(b * 74, b * 2);
+        w2.addInput(b * 75, b * 2);
+        w21.addInput(b * 75.5, b * 2);
+        w21.addInput(b * 76.5, b * 2);
+        w21.addInput(b * 77, b * 2);
+        w2.addInput(b * 77.5, b * 2);
+        w2.addInput(b * 78, b * 2);
+        w21.addInput(b * 79, b * 2);
+        // Change it up a bit...
+        w21.addInput(b * 80, b * 2);
+        w2.addInput(b * 81, b * 2);
+        w2.addInput(b * 81.5, b * 2);
+        w21.addInput(b * 82, b * 2);
+        w21.addInput(b * 82.5, b * 2);
+        w2.addInput(b * 83.5, b * 2);
+        w21.addInput(b * 84.5, b * 2);
+        w2.addInput(b * 85, b * 2);
+        w2.addInput(b * 85.5, b * 2);
+        w21.addInput(b * 86, b * 2);
+        w21.addInput(b * 86.5, b * 2);
+        w2.addInput(b * 87.5, b * 2);
+        w21.addInput(b * 88, b * 2);
+        w2.addInput(b * 88.5, b * 2);
+        w21.addInput(b * 89, b * 2);
+        w21.addInput(b * 89.5, b * 2);
+        w2.addInput(b * 91, b * 2);
+        w21.addInput(b * 91.5, b * 2);
+        w2.addInput(b * 92, b * 2);
+        w21.addInput(b * 93, b * 2);
+        w2.addInput(b * 94, b * 2);
+        w21.addInput(b * 95, b * 2);
+        // yes I know it looks weird I'm just lazy like that :shrugcat:
+        setTimeout(() => { w2.close(); w21.close(); }, b * 96);
+      }, b * 32);
     }, b * 65); // !!!! Random magic number !!!!
   }, b * 164);
 });
