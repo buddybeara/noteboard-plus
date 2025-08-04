@@ -440,7 +440,7 @@ var Song = /** @class */ (function () {
     };
     return Song;
 }());
-var hammerOfJustice = new Song("Hammer of Justice - Toby Fox", 138, gid("hammer-of-justice"), 160, 4, function (S) {
+var hammerOfJustice = new Song("Hammer of Justice - Toby Fox", 136, gid("hammer-of-justice"), 160, 4, function (S) {
     var b = S.mspb;
     var w0 = new GridWindow(S, 800, 200, 200, 400, "j", 4, 1);
     for (var i = 4; i <= 64; i += 4) {
@@ -590,7 +590,7 @@ var hammerOfJustice = new Song("Hammer of Justice - Toby Fox", 138, gid("hammer-
         setTimeout(function () {
             b = 60000 / 160;
             // Everything is zeroed out again! yippee
-            for (var i = 2.5; i < 96; i++) {
+            for (var i = 2.5; i < 64; i++) {
                 w1.addInput(b * i, b * 2);
             }
             w01.addInput(b * 4, b * 2);

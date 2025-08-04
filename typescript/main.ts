@@ -382,7 +382,7 @@ class Song {
   }
   level: (S: Song) => void;
 }
-let hammerOfJustice = new Song("Hammer of Justice - Toby Fox", 138, gid("hammer-of-justice") as HTMLAudioElement, 160, 4, (S: Song) => {
+let hammerOfJustice = new Song("Hammer of Justice - Toby Fox", 136, gid("hammer-of-justice") as HTMLAudioElement, 160, 4, (S: Song) => {
   let b = S.mspb;
   let w0 = new GridWindow(S, 800, 200, 200, 400, "j", 4, 1);
   for(let i = 4; i <= 64; i += 4) {
@@ -524,7 +524,7 @@ let hammerOfJustice = new Song("Hammer of Justice - Toby Fox", 138, gid("hammer-
     setTimeout(() => {
       b = 60000 / 160;
       // Everything is zeroed out again! yippee
-      for(let i = 2.5; i < 96; i++) { w1.addInput(b * i, b * 2); }
+      for(let i = 2.5; i < 64; i++) { w1.addInput(b * i, b * 2); }
       w01.addInput(b * 4, b * 2);
       w01.addInput(b * 8, b * 2);
       w01.addInput(b * 9.5, b * 1.5);
