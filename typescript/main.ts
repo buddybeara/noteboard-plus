@@ -100,7 +100,7 @@ setInterval(() => {
   localStorage.setItem("offsetInfo", (gid("audio-offset") as HTMLInputElement).value + ";" + (gid("input-offset") as HTMLInputElement).value);
 }, 50);
 
-const MissTime = 400, OkTime = 150, PerfectTime = 50;
+const MissTime = 400, OkTime = 150, CoolTime = 50, PerfectTime = 10;
 
 abstract class RhythmWindow extends WindowThing {
   song: Song;
@@ -120,8 +120,11 @@ abstract class RhythmWindow extends WindowThing {
   formatParticle(badness: number, particle: HTMLElement) {
     particle.classList.add("particle");
     if(badness < PerfectTime) {
-      particle.textContent = "perfect!";
+      particle.textContent = "perfect!!";
       particle.style.color = "lime";
+    } else if(badness < CoolTime) {
+      particle.textContent = "cool!";
+      particle.style.color = "#7f0";
     } else if(badness < OkTime) {
       particle.textContent = "ok!";
       particle.style.color = "yellow";
