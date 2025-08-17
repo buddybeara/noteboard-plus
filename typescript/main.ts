@@ -12,6 +12,7 @@ function animateBackground(ms: number) {
   }
 }
 // Run the background at 100fps because I can.
+// ok
 let backgroundTimer = 0; setInterval(() => { backgroundTimer += 10; animateBackground(backgroundTimer); }, 10);
 
 function createWindow(x: number, y: number, w: number, h: number, open = true) {
